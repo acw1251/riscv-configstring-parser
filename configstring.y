@@ -2,7 +2,10 @@
 #include <cstdio>
 #include <iostream>
 #include <map>
+#include <list>
 #include <algorithm>
+#include <utility>
+#include "configstring.h"
 
 // stuff from flex that bison needs to know about:
 extern "C" int yylex();
@@ -16,30 +19,65 @@ void yyerror(const char *s);
 %union {
     char* sval;
     std::string* sptr;
-    std::map<std::string, std::string>* smap;
+    configstring_node_t* cfn;
 }
 
 %token <sval> TOKEN
 %type <sptr> key entry
-%type <smap> configline configlines
+%type <cfn> configline configlines
 %%
 
 configstring:
     configlines {
         std::cout << "Done parsing." << std::endl;
-        for (auto it = $1->begin() ; it != $1->end() ; it++ ) {
-            std::cout << it->first << " = " << it->second << std::endl;
+        int depth = 0;
+        if ($1->data.length() != 0) {
+            std::cout << $1->data << std::endl;
+        }
+        //std::pair<auto, auto> p = pair($1->children.begin(), $1->children.end());
+        auto p = std::make_pair($1->children.begin(), $1->children.end());
+        auto l = make_list_with_init(p);
+        auto it = $1->children.begin();
+        while (l.size() != 0) {
+            // continue processing noe at top of stack
+            p = l.back();
+            l.pop_back();
+            for (it = p.first ; it != p.second ; it ++ ) {
+                // print data
+                if (depth < 0) {
+                    std::cout << "error: depth < 0" << std::endl;
+                }
+                for (int i = 0 ; i < depth ; i++) {
+                    std::cout << "    ";
+                }
+                std::cout << it->first << " : " << it->second.data << std::endl;
+                if (it->second.children.size() != 0) {
+                    break;
+                }
+            }
+            if (it != p.second) {
+                // save current state
+                p = std::make_pair(std::next(it), p.second);
+                l.push_back(p);
+                // iterate into children
+                depth++;
+                p = std::make_pair(it->second.children.begin(), it->second.children.end());
+                l.push_back(p);
+            } else {
+                depth--;
+            }
         }
     }
     ;
 
 configlines:
     configlines configline {
-        for (auto it = $2->begin() ; it != $2->end() ; it++ ) {
-            (*$1)[ it->first ] = it->second;
+        // merge the children
+        for (auto it = $2->children.begin() ; it != $2->children.end() ; it++ ) {
+            $1->children[ it->first ] = it->second;
         }
-        $$ = $1;
         delete $2;
+        $$ = $1;
     }
     | configline {
         $$ = $1;
@@ -48,20 +86,18 @@ configlines:
 
 configline:
     key '{' configlines '}' ';' {
-        std::map<std::string, std::string> *x = new std::map<std::string, std::string>();
-        for (auto it = $3->begin() ; it != $3->end() ; it++ ) {
-            (*x)[ *$1 + "." + it->first ] = it->second;
-        }
-        $$ = x;
+        configstring_node_t *x = new configstring_node_t();
+        x->children[*$1] = *$3;
         delete $1;
         delete $3;
+        $$ = x;
     }
     | key entry ';' {
-        std::map<std::string, std::string> *x = new std::map<std::string, std::string>();
-        (*x)[*($1)] = *($2);
-        $$ = x;
+        configstring_node_t *x = new configstring_node_t();
+        x->children[*$1] = configstring_node_t(*$2);
         delete $1;
         delete $2;
+        $$ = x;
     }
     ;
 

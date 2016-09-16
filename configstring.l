@@ -1,6 +1,7 @@
 %{
 #include <iostream>
 #include <map>
+#include "configstring.h"
 #include "configstring.tab.h"
 #define YY_DECL extern "C" int yylex()
 unsigned int linenum = 0;
