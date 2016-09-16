@@ -1,0 +1,4 @@
+platform { vendor mit; arch riscy; };
+ram { 0 { @ 0x00000000:0x00007FFF; }; };
+uart { @ 0x40000020; };
+core { 0 { 0 { isa rv32i; }; }; };

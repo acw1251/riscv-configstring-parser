@@ -1,0 +1,4 @@
+configstring.tab.c
+configstring.tab.h
+lex.yy.c
+main

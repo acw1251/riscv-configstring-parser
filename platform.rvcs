@@ -1,0 +1,39 @@
+platform { vendor ucb; arch spike; };
+plic {
+    interface plic;
+    ndevs 2;
+    priority { @ 0x40000000:0x40000fff; };
+    pending { @ 0x40001000:0x40001fff; };
+    0 {
+        0 {
+            m {
+                ie { @ 0x40002000:0x4000207f; };
+                ctl { @ 0x40200000:0x40200007; };
+            };
+            s {
+                ie { @ 0x40002080:0x400020ff; };
+                ctl { @ 0x40201000:0x40201007; };
+            };
+        };
+    };
+};
+pcie {
+    interface pcie-rv;
+    bus {
+        @ 0x60000000:7fffffff 0x20000000:0x3fffffff;
+        bus 1:63;
+    };
+    bridge {
+        @ 0x50000000:53ffffff;
+        bus 0;
+        irq 0;
+    };
+};
+leds { interface gpio; ngio 4; @ 0x48002000:0x48002003; };
+rtc { @ 0x2000; };
+ram { 0 { @ 0x80000000:0x8FFFFFFF; }; };
+uart { @ 0x48000000; };
+core { 0 { 0 { isa rv64ima; timecmp 0x2008; ipi 0x44000000; };
+           1 { isa rv64ima; timecmp 0x2010; ipi 0x44001000; }; };
+       1 { 2 { isa rv64ima; timecmp 0x2018; ipi 0x44002000; };
+           3 { isa rv64ima; timecmp 0x2020; ipi 0x44003000; }; }; };
